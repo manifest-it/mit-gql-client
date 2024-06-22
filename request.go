@@ -98,6 +98,7 @@ type Mutation struct {
 	Name   string
 	Input  Where
 	Select Queries
+	Wrap   bool
 }
 
 func (m Mutation) String() string {
@@ -106,7 +107,7 @@ func (m Mutation) String() string {
 		mParts = append(mParts, m.Input.String())
 	}
 	if len(m.Select) == 0 {
-		return WrapMutation(strings.Join(mParts, " "), true)
+		return WrapMutation(strings.Join(mParts, " "), m.Wrap)
 	}
 	subfields := []string{}
 	for _, subfield := range m.Select {
@@ -115,7 +116,7 @@ func (m Mutation) String() string {
 	if len(subfields) > 0 {
 		mParts = append(mParts, fmt.Sprintf("{%s}", strings.Join(subfields, " ")))
 	}
-	return WrapMutation(strings.Join(mParts, " "), true)
+	return WrapMutation(strings.Join(mParts, " "), m.Wrap)
 }
 
 func WrapMutation(gql string, wrap bool) string {
