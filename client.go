@@ -47,7 +47,7 @@ func (c *Client) DoGraphQLString(gql string, headers map[string]string) (*http.R
 	return c.DoJSON(data, headers)
 }
 
-func (c *Client) DoGraphQL(gql Query, headers map[string]string) (*http.Response, error) {
+func (c *Client) DoGraphQL(gql GraphQLOperation, headers map[string]string) (*http.Response, error) {
 	return c.DoGraphQLString(gql.String(), headers)
 }
 

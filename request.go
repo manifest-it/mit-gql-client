@@ -5,12 +5,18 @@ import (
 	"strings"
 )
 
+type GraphQLOperation interface {
+	String() string
+}
+
 type Query struct {
 	Object string
 	Where  Where
 	Select Queries
 	Wrap   bool
 }
+
+type Where map[string]any
 
 type Queries []Query
 
@@ -27,13 +33,10 @@ func (q Query) String() string {
 		subfields = append(subfields, subfield.String())
 	}
 	if len(subfields) > 0 {
-		qParts = append(qParts,
-			"{"+strings.Join(subfields, " ")+"}")
+		qParts = append(qParts, fmt.Sprintf("{%s}", strings.Join(subfields, " ")))
 	}
 	return WrapQuery(strings.Join(qParts, " "), q.Wrap)
 }
-
-type Where map[string]any
 
 func (w Where) String() string {
 	if len(w) == 0 {
@@ -45,7 +48,11 @@ func (w Where) String() string {
 		case int:
 			parts = append(parts, fmt.Sprintf("%s: %d", k, v))
 		case string:
-			parts = append(parts, fmt.Sprintf("%s:\"%s\"", k, v))
+			if k == "column_values" {
+				parts = append(parts, fmt.Sprintf("%s: %s", k, v))
+			} else {
+				parts = append(parts, fmt.Sprintf("%s:\"%s\"", k, v))
+			}
 		case []string:
 			parts = append(parts, fmt.Sprintf("%s:[%s]", k, strings.Join(v, ", ")))
 		case map[string]any:
@@ -55,14 +62,14 @@ func (w Where) String() string {
 				for rk, rv := range rule {
 					ruleParts = append(ruleParts, formatRule(rk, rv))
 				}
-				rules = append(rules, "{"+strings.Join(ruleParts, ", ")+"}")
+				rules = append(rules, fmt.Sprintf("{%s}", strings.Join(ruleParts, ", ")))
 			}
 			parts = append(parts, fmt.Sprintf("%s: { rules: [%s] }", k, strings.Join(rules, ", ")))
 		default:
 			parts = append(parts, fmt.Sprintf("%s:unknown_type", k))
 		}
 	}
-	return "(" + strings.Join(parts, ", ") + ")"
+	return fmt.Sprintf("(%s)", strings.Join(parts, ", "))
 }
 
 func formatRule(key string, value interface{}) string {
@@ -83,6 +90,37 @@ func formatRule(key string, value interface{}) string {
 func WrapQuery(gql string, wrap bool) string {
 	if wrap {
 		return fmt.Sprintf("query {%s}", gql)
+	}
+	return gql
+}
+
+type Mutation struct {
+	Name   string
+	Input  Where
+	Select Queries
+}
+
+func (m Mutation) String() string {
+	mParts := []string{m.Name}
+	if len(m.Input) > 0 {
+		mParts = append(mParts, m.Input.String())
+	}
+	if len(m.Select) == 0 {
+		return WrapMutation(strings.Join(mParts, " "), true)
+	}
+	subfields := []string{}
+	for _, subfield := range m.Select {
+		subfields = append(subfields, subfield.String())
+	}
+	if len(subfields) > 0 {
+		mParts = append(mParts, fmt.Sprintf("{%s}", strings.Join(subfields, " ")))
+	}
+	return WrapMutation(strings.Join(mParts, " "), true)
+}
+
+func WrapMutation(gql string, wrap bool) string {
+	if wrap {
+		return fmt.Sprintf("mutation {%s}", gql)
 	}
 	return gql
 }
