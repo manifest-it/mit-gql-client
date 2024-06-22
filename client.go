@@ -12,14 +12,15 @@ import (
 
 type Client struct {
 	httpClient *http.Client
+	headers    map[string]string
 	endpoint   string
 }
 
-func NewClient(endpoint, token string) Client {
-	return Client{endpoint: endpoint, httpClient: authutil.NewClientAuthzTokenSimple("", token)}
+func NewClient(endpoint, token string, headers map[string]string) Client {
+	return Client{endpoint: endpoint, httpClient: authutil.NewClientAuthzTokenSimple("", token), headers: headers}
 }
 
-func (c *Client) DoJSON(data []byte, headers map[string]string) (*http.Response, error) {
+func (c *Client) DoJSON(data []byte) (*http.Response, error) {
 	if c.httpClient == nil {
 		return nil, errors.New("no auth token")
 	}
@@ -31,31 +32,26 @@ func (c *Client) DoJSON(data []byte, headers map[string]string) (*http.Response,
 
 	req.Header.Add(httputilmore.HeaderContentType, httputilmore.ContentTypeAppJSONUtf8)
 
-	for key, value := range headers {
+	for key, value := range c.headers {
 		req.Header.Add(key, value)
 	}
 
 	return c.httpClient.Do(req)
 }
 
-func (c *Client) DoGraphQLString(gql string, headers map[string]string) (*http.Response, error) {
+func (c *Client) DoGraphQLString(gql string) (*http.Response, error) {
 	req := QueryRequest{Query: gql}
 	data, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
-	return c.DoJSON(data, headers)
+	return c.DoJSON(data)
 }
 
-func (c *Client) DoGraphQL(gql GraphQLOperation, headers map[string]string) (*http.Response, error) {
-	return c.DoGraphQLString(gql.String(), headers)
+func (c *Client) DoGraphQL(gql GraphQLOperation) (*http.Response, error) {
+	return c.DoGraphQLString(gql.String())
 }
 
 type QueryRequest struct {
 	Query string `json:"query"`
-}
-
-type ErrorResponse struct {
-	StatusCode int    `json:"status_code"`
-	ErrorCode  string `json:"error_code"`
 }
