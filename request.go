@@ -38,6 +38,7 @@ func (q Query) String() string {
 	return WrapQuery(strings.Join(qParts, " "), q.Wrap)
 }
 
+// todo: refactor so that we don't need to hardcode specific fields for each provider
 func (w Where) String() string {
 	if len(w) == 0 {
 		return ""
@@ -48,6 +49,7 @@ func (w Where) String() string {
 		case int:
 			parts = append(parts, fmt.Sprintf("%s: %d", k, v))
 		case string:
+			// this is specific to monday.com
 			if k == "column_values" {
 				parts = append(parts, fmt.Sprintf("%s: %s", k, v))
 			} else {
@@ -56,15 +58,22 @@ func (w Where) String() string {
 		case []string:
 			parts = append(parts, fmt.Sprintf("%s:[%s]", k, strings.Join(v, ", ")))
 		case map[string]any:
-			var rules []string
-			for _, rule := range v["rules"].([]map[string]any) {
-				var ruleParts []string
-				for rk, rv := range rule {
-					ruleParts = append(ruleParts, formatRule(rk, rv))
+			// this is specific to monday.com
+			if rulesObj, ok := v["rules"]; ok {
+				var rules []string
+				for _, rule := range rulesObj.([]map[string]any) {
+					var ruleParts []string
+					for rk, rv := range rule {
+						ruleParts = append(ruleParts, formatRule(rk, rv))
+					}
+					rules = append(rules, fmt.Sprintf("{%s}", strings.Join(ruleParts, ", ")))
 				}
-				rules = append(rules, fmt.Sprintf("{%s}", strings.Join(ruleParts, ", ")))
+				parts = append(parts, fmt.Sprintf("%s: { rules: [%s] }", k, strings.Join(rules, ", ")))
 			}
-			parts = append(parts, fmt.Sprintf("%s: { rules: [%s] }", k, strings.Join(rules, ", ")))
+			// this is specific to panther.com
+			if cursor, ok := v["cursor"]; ok {
+				parts = append(parts, fmt.Sprintf("%s: { cursor: \"%s\" }", k, cursor.(string)))
+			}
 		default:
 			parts = append(parts, fmt.Sprintf("%s:unknown_type", k))
 		}
