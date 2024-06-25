@@ -70,9 +70,12 @@ func (w Where) String() string {
 				}
 				parts = append(parts, fmt.Sprintf("%s: { rules: [%s] }", k, strings.Join(rules, ", ")))
 			}
-			// this is specific to panther.com
+			// these are specific to panther.com
 			if cursor, ok := v["cursor"]; ok {
 				parts = append(parts, fmt.Sprintf("%s: { cursor: \"%s\" }", k, cursor.(string)))
+			}
+			if sql, ok := v["sql"]; ok {
+				parts = append(parts, fmt.Sprintf("%s: { sql: \"%s\" }", k, sql.(string)))
 			}
 		default:
 			parts = append(parts, fmt.Sprintf("%s:unknown_type", k))
